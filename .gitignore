@@ -1,0 +1,77 @@
+
+---
+
+### `.gitignore`
+```gitignore
+# =========================
+# Python
+# =========================
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environments
+venv/
+env/
+.venv/
+ENV/
+.python-version
+
+# Packaging / build
+build/
+dist/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+.wheels/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache/
+
+# Logs
+*.log
+
+# =========================
+# IDE / Editors
+# =========================
+.vscode/
+.idea/
+*.iml
+
+# =========================
+# MacOS
+# =========================
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon?
+._*
+
+# =========================
+# Environment / Secrets
+# =========================
+.env
+.env.*
+*.pem
+*.key
+
+# =========================
+# Jupyter / notebooks
+# =========================
+.ipynb_checkpoints/
+
+# =========================
+# Streamlit
+# =========================
+.streamlit/secrets.toml
+
+# =========================
+# Docker
+# =========================
+*.pid

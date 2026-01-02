@@ -6,15 +6,13 @@ from typing import Generator
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
 
-# Format standard :
-# postgresql+psycopg2://USER:PASSWORD@HOST:PORT/DBNAME
-DATABASE_URL: str = os.getenv(
-    "DATABASE_URL",
-    "postgresql+psycopg2://postgres:postgres@localhost:5432/observatoire",
-)
+# SQLite local (par défaut) :
+# sqlite:///./observatoire.db
+DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./observatoire.db")
 
 engine = create_engine(
     DATABASE_URL,
+    connect_args={"check_same_thread": False},  # nécessaire pour SQLite avec FastAPI
     pool_pre_ping=True,
     future=True,
 )
