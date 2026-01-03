@@ -21,13 +21,14 @@ def on_startup() -> None:
 class ProduitCreate(BaseModel):
     nom: str = Field(..., min_length=1, max_length=120)
     description: Optional[str] = Field(None, max_length=10_000)
-
+    prix: int = Field(..., ge=0)
 
 class ProduitRead(BaseModel):
     id: int
     nom: str
     description: Optional[str] = None
-
+    prix: int
+    
     class Config:
         from_attributes = True
 
@@ -39,7 +40,7 @@ def root() -> dict:
 
 @app.post("/produits/", response_model=ProduitRead, status_code=status.HTTP_201_CREATED)
 def create_produit(payload: ProduitCreate, db: Session = Depends(get_db)) -> Produit:
-    produit = Produit(nom=payload.nom, description=payload.description)
+    produit = Produit(nom=payload.nom, description=payload.description, prix=payload.prix)
     db.add(produit)
 
     try:

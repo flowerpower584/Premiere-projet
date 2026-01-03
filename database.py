@@ -1,32 +1,18 @@
-from __future__ import annotations
-
-import os
-from typing import Generator
-
 from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker, Session
+from sqlalchemy.orm import sessionmaker, declarative_base
 
-# SQLite local (par défaut) :
-# sqlite:///./observatoire.db
-DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./observatoire.db")
+SQLALCHEMY_DATABASE_URL = "sqlite:///./observatoire.db"
 
 engine = create_engine(
-    DATABASE_URL,
-    connect_args={"check_same_thread": False},  # nécessaire pour SQLite avec FastAPI
-    pool_pre_ping=True,
-    future=True,
+    SQLALCHEMY_DATABASE_URL, connect_args={"check_same_thread": False}
 )
 
-SessionLocal = sessionmaker(
-    bind=engine,
-    autocommit=False,
-    autoflush=False,
-    class_=Session,
-    future=True,
-)
+SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+Base = declarative_base()
 
 
-def get_db() -> Generator[Session, None, None]:
+def get_db():
     db = SessionLocal()
     try:
         yield db
