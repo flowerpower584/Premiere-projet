@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="flex justify-between items-center mb-6">
+    <h1 class="text-2xl font-bold text-gray-900">Relevés de Prix</h1>
+    <button onclick="toggleModal()" class="bg-senegal-green hover:bg-green-700 text-white font-bold py-2 px-4 rounded shadow">
+        <i class="fas fa-plus mr-2"></i> Nouveau Relevé
+    </button>
+</div>
+
+<!-- List -->
+<div class="bg-white shadow overflow-hidden sm:rounded-lg">
+    <table class="min-w-full divide-y divide-gray-200">
+        <thead class="bg-gray-50">
+            <tr>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marché</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
+                <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+            </tr>
+        </thead>
+        <tbody id="prices-list" class="bg-white divide-y divide-gray-200">
+            <!-- Populated by JS -->
+        </tbody>
+    </table>
+</div>
+
+<!-- Modal -->
+<div id="modal" class="fixed z-10 inset-0 overflow-y-auto hidden" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <div class="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+        <div class="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" aria-hidden="true"></div>
+        <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+        <div class="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
+            <form id="add-form" onsubmit="submitForm(event)">
+                <div class="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
+                    <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4" id="modal-title">Nouveau Prix</h3>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="produit_id">Produit</label>
+                        <select class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="produit_id" required>
+                            <!-- Populated JS -->
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="marche_id">Marché</label>
+                        <select class="shadow border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="marche_id" required>
+                             <!-- Populated JS -->
+                        </select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="valeur">Prix</label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="valeur" type="number" step="0.01" required>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="block text-gray-700 text-sm font-bold mb-2" for="collecte_at">Date de collecte</label>
+                        <input class="shadow appearance-none border rounded w-full py-2 px-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline" id="collecte_at" type="datetime-local" required>
+                    </div>
+
+                </div>
+                <div class="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
+                    <button type="submit" class="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-senegal-green text-base font-medium text-white hover:bg-green-700 focus:outline-none sm:ml-3 sm:w-auto sm:text-sm">
+                        Enregistrer
+                    </button>
+                    <button type="button" onclick="toggleModal()" class="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none sm:mt-0 sm:ml-3 sm:w-auto sm:text-sm">
+                        Annuler
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let productsMap = new Map();
+    let marketsMap = new Map();
+
+    function toggleModal() {
+        document.getElementById('modal').classList.toggle('hidden');
+    }
+
+    async function loadData() {
+        // Load dependencies
+        const [produitsRes, marchesRes, prixRes] = await Promise.all([
+            fetch('/produits/'),
+            fetch('/marches/'),
+            fetch('/prix/')
+        ]);
+
+        const produits = await produitsRes.json();
+        const marches = await marchesRes.json();
+        const prix = await prixRes.json();
+
+        // Populate Selects and Maps
+        const prodSelect = document.getElementById('produit_id');
+        prodSelect.innerHTML = '';
+        produits.forEach(p => {
+            productsMap.set(p.id, p);
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.text = `${p.nom} (${p.unite})`;
+            prodSelect.appendChild(opt);
+        });
+
+        const marcheSelect = document.getElementById('marche_id');
+        marcheSelect.innerHTML = '';
+        marches.forEach(m => {
+            marketsMap.set(m.id, m);
+            const opt = document.createElement('option');
+            opt.value = m.id;
+            opt.text = `${m.nom} - ${m.ville}`;
+            marcheSelect.appendChild(opt);
+        });
+
+        // Set default date
+        const now = new Date();
+        now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+        document.getElementById('collecte_at').value = now.toISOString().slice(0, 16);
+
+        // Populate Table
+        const tbody = document.getElementById('prices-list');
+        tbody.innerHTML = '';
+        prix.forEach(p => {
+            const prod = productsMap.get(p.produit_id) || { nom: '?', unite: '' };
+            const marche = marketsMap.get(p.marche_id) || { nom: '?' };
+
+            const row = `
+                <tr>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${prod.nom}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${marche.nom}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm font-bold text-gray-900">${p.valeur} ${p.devise} / ${prod.unite}</td>
+                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${new Date(p.collecte_at).toLocaleDateString()} ${new Date(p.collecte_at).toLocaleTimeString()}</td>
+                </tr>
+            `;
+            tbody.insertAdjacentHTML('beforeend', row);
+        });
+    }
+
+    async function submitForm(e) {
+        e.preventDefault();
+        const payload = {
+            produit_id: parseInt(document.getElementById('produit_id').value),
+            marche_id: parseInt(document.getElementById('marche_id').value),
+            valeur: parseFloat(document.getElementById('valeur').value),
+            collecte_at: document.getElementById('collecte_at').value,
+            devise: 'XOF'
+        };
+
+        const res = await fetch('/prix/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+
+        if (res.ok) {
+            toggleModal();
+            loadData(); // Refresh list
+        } else {
+            alert('Erreur lors de la création');
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadData);
+</script>
+{% endblock %}

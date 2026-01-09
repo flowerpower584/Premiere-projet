@@ -3,7 +3,10 @@ from __future__ import annotations
 from typing import List, Optional
 from datetime import datetime
 
-from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi import Depends, FastAPI, HTTPException, status, Request
+from fastapi.staticfiles import StaticFiles
+from fastapi.templating import Jinja2Templates
+from fastapi.responses import HTMLResponse
 from pydantic import BaseModel, Field
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -12,6 +15,9 @@ from database import engine, get_db
 from models import Base, Produit, Marche, Prix
 
 app = FastAPI(title="Observatoire du Sénégal API", version="1.0.0")
+
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
 
 
 @app.on_event("startup")
@@ -85,12 +91,26 @@ class PrixRead(BaseModel):
         from_attributes = True
 
 
-@app.get("/")
-def root() -> dict:
-    return {"message": "Bienvenue sur l'API Observatoire du Sénégal 🇸🇳"}
+# --- Frontend Routes ---
+
+@app.get("/", response_class=HTMLResponse)
+async def read_root(request: Request):
+    return templates.TemplateResponse("index.html", {"request": request})
+
+@app.get("/ui/produits", response_class=HTMLResponse)
+async def view_produits(request: Request):
+    return templates.TemplateResponse("produits.html", {"request": request})
+
+@app.get("/ui/marches", response_class=HTMLResponse)
+async def view_marches(request: Request):
+    return templates.TemplateResponse("marches.html", {"request": request})
+
+@app.get("/ui/prix", response_class=HTMLResponse)
+async def view_prix(request: Request):
+    return templates.TemplateResponse("prix.html", {"request": request})
 
 
-# --- Endpoints Produits ---
+# --- API Endpoints ---
 
 @app.post("/produits/", response_model=ProduitRead, status_code=status.HTTP_201_CREATED)
 def create_produit(payload: ProduitCreate, db: Session = Depends(get_db)) -> Produit:
@@ -145,4 +165,8 @@ def create_prix(payload: PrixCreate, db: Session = Depends(get_db)) -> Prix:
 
 @app.get("/prix/", response_model=List[PrixRead])
 def list_prix(db: Session = Depends(get_db)) -> List[Prix]:
-    return db.query(Prix).order_by(Prix.collecte_at.desc()).all()
+    # We join here to make it easier for frontend if we were sending enriched data,
+    # but for now we stick to the schema.
+    # To improve frontend, we might want to return nested objects or handle joins in JS.
+    # Let's keep it simple: the JS will fetch products and markets to map IDs to names.
+    return db.query(Prix).order_by(Prix.collecte_at.desc()).limit(100).all()
