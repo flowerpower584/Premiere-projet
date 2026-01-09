@@ -16,6 +16,11 @@ from models import Base, Produit, Marche, Prix
 
 app = FastAPI(title="Observatoire du Sénégal API", version="1.0.0")
 
+# Ensure static directory exists
+import os
+if not os.path.exists("static"):
+    os.makedirs("static")
+
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
