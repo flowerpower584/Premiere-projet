@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+    <!-- Stats Cards -->
+    <div class="bg-white overflow-hidden shadow rounded-lg border-l-4 border-senegal-green">
+        <div class="px-4 py-5 sm:p-6">
+            <dt class="text-sm font-medium text-gray-500 truncate">Total Produits</dt>
+            <dd class="mt-1 text-3xl font-semibold text-gray-900" id="count-produits">-</dd>
+        </div>
+    </div>
+    <div class="bg-white overflow-hidden shadow rounded-lg border-l-4 border-senegal-yellow">
+        <div class="px-4 py-5 sm:p-6">
+            <dt class="text-sm font-medium text-gray-500 truncate">Marchés Suivis</dt>
+            <dd class="mt-1 text-3xl font-semibold text-gray-900" id="count-marches">-</dd>
+        </div>
+    </div>
+    <div class="bg-white overflow-hidden shadow rounded-lg border-l-4 border-senegal-red">
+        <div class="px-4 py-5 sm:p-6">
+            <dt class="text-sm font-medium text-gray-500 truncate">Relevés de Prix</dt>
+            <dd class="mt-1 text-3xl font-semibold text-gray-900" id="count-prix">-</dd>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white shadow rounded-lg">
+    <div class="px-4 py-5 border-b border-gray-200 sm:px-6 flex justify-between items-center">
+        <h3 class="text-lg leading-6 font-medium text-gray-900">
+            Derniers relevés de prix
+        </h3>
+        <a href="/ui/prix" class="text-sm text-senegal-green hover:text-senegal-green-dark">Voir tout &rarr;</a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+                <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Produit</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Marché</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Prix</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                </tr>
+            </thead>
+            <tbody id="latest-prices" class="bg-white divide-y divide-gray-200">
+                <!-- Data populated by JS -->
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    async function loadDashboard() {
+        try {
+            // Parallel fetch for efficiency
+            const [produitsRes, marchesRes, prixRes] = await Promise.all([
+                fetch('/produits/'),
+                fetch('/marches/'),
+                fetch('/prix/')
+            ]);
+
+            const produits = await produitsRes.json();
+            const marches = await marchesRes.json();
+            const prix = await prixRes.json();
+
+            // Update Counts
+            document.getElementById('count-produits').textContent = produits.length;
+            document.getElementById('count-marches').textContent = marches.length;
+            document.getElementById('count-prix').textContent = prix.length;
+
+            // Map IDs to names for easier lookup
+            const prodMap = new Map(produits.map(p => [p.id, p]));
+            const marcheMap = new Map(marches.map(m => [m.id, m]));
+
+            // Update Latest Prices Table (Top 5)
+            const tbody = document.getElementById('latest-prices');
+            tbody.innerHTML = '';
+
+            prix.slice(0, 5).forEach(p => {
+                const prod = prodMap.get(p.produit_id) || { nom: 'Inconnu', unite: '' };
+                const marche = marcheMap.get(p.marche_id) || { nom: 'Inconnu' };
+                const date = new Date(p.collecte_at).toLocaleDateString('fr-FR');
+
+                const row = `
+                    <tr>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${prod.nom}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${marche.nom}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-bold">${p.valeur} ${p.devise} / ${prod.unite}</td>
+                        <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${date}</td>
+                    </tr>
+                `;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+        } catch (error) {
+            console.error('Error loading dashboard:', error);
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDashboard);
+</script>
+{% endblock %}
